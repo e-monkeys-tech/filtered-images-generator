@@ -3,6 +3,103 @@ extern crate photon_rs as photon;
 extern crate time;
 use std::path::Path;
 use std::fs;
+use std::env;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+
+  let args: Vec<String> = env::args().collect();
+  let image_input_directory = &args[1];
+  let image_output_directory = &args[2];
+
+  for entry in fs::read_dir(image_input_directory).expect("Directory not exists") {
+    let entry = entry.expect("Couldn't read inside directory");
+
+    let image_path = &entry.path().display().to_string(); // Get path reference
+    let p = Path::new(image_path).file_stem(); // Get filename in path
+    let parse_filename = format!("{:?}", p)
+    .replace("\"", "")
+    .replace("-", "_")
+    .replace("é", "e")
+    .replace("à", "a")
+    .replace("è", "e")
+    .replace(",", "_")
+    .replace(" ", "")
+    .replace("(", "")
+    .replace(")", "")
+    .replace("Some", ""); // Parse the destination image name to a convenient std unix name
+
+    let colour_spaces: [&str; 5] = [
+        "saturate_hsl",
+        "desaturate",
+        "lighten", 
+        "darken", 
+        "shift_hue",
+    ];
+
+    for &color in colour_spaces.iter() {
+        // Open image path (&str) in photon native engine
+        let mut img = photon::native::open_image(image_path)?;
+        
+        photon::colour_spaces::hsl(&mut img, color, 0.2_f32);
+        
+        photon::native::save_image(img, &format!(
+            "{}/{}_{}.jpg", 
+            image_output_directory,
+            parse_filename, 
+            color
+        )[..]);
+        println!(
+            "Generate {}/{}_{}.jpg image.",
+            image_output_directory,
+            parse_filename,
+            color
+        );
+    }
+
+    // Apply effect and save image for each following
+    solarize(image_path, image_output_directory, &parse_filename)
+    .expect("Couldn't create solarize image");
+    
+    colorize(image_path, image_output_directory, &parse_filename)
+    .expect("Couldn't create colorize image");
+
+    halftone(image_path, image_output_directory, &parse_filename)
+    .expect("Couldn't create halftone image");
+
+    inc_brightness(image_path, image_output_directory, &parse_filename, 10)
+    .expect("Couldn't create inc_brightness image");
+    
+    vertical_strips(image_path, image_output_directory, &parse_filename, 5)
+    .expect("Couldn't create vertical_strips image");
+
+    horizontal_strips(image_path, image_output_directory, &parse_filename, 7)
+    .expect("Couldn't create horizontal_strips image");
+
+    tint(image_path, image_output_directory, &parse_filename, 10, 20, 15)
+    .expect("Couldn't create tint image");
+
+    offset(image_path, image_output_directory, &parse_filename, 0, 30)
+    .expect("Couldn't create offset image");
+
+    offset_blue(image_path, image_output_directory, &parse_filename, 30)
+    .expect("Couldn't create offset_blue image");
+
+    offset_red(image_path, image_output_directory, &parse_filename, 30)    
+    .expect("Couldn't create offset_red image");
+
+    offset_green(image_path, image_output_directory, &parse_filename, 30)
+    .expect("Couldn't create offset_green image");
+
+    multiple_offsets(image_path, image_output_directory, &parse_filename, 30, 0, 2)
+    .expect("Couldn't create mutliple_offsets image");
+
+    primary(image_path, image_output_directory, &parse_filename)
+    .expect("Couldn't create primary image");
+
+    println!("You can compare outputs images with the original in {:?}", entry);
+  }
+  Ok(())
+}
 
 fn solarize(image_path: &str, image_output_directory: &str, parse_filename: &str) -> Result<(), Box<dyn std::error::Error>> {
   let mut img = photon::native::open_image(image_path)?;
@@ -242,99 +339,5 @@ fn vertical_strips(
       image_output_directory,
       parse_filename
   );
-  Ok(())
-}
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-  let image_input_directory = "img/in";
-  let image_output_directory = "img/out";
-
-  for entry in fs::read_dir(image_input_directory).expect("Directory not exists") {
-    let entry = entry.expect("Couldn't read inside directory");
-
-    let image_path = &entry.path().display().to_string(); // Get path reference
-    let p = Path::new(image_path).file_stem(); // Get filename in path
-    let parse_filename = format!("{:?}", p)
-    .replace("\"", "")
-    .replace("-", "_")
-    .replace("é", "e")
-    .replace("à", "a")
-    .replace("è", "e")
-    .replace(",", "_")
-    .replace(" ", "")
-    .replace("(", "")
-    .replace(")", "")
-    .replace("Some", ""); // Parse the destination image name to a convenient std unix name
-
-    let colour_spaces: [&str; 5] = [
-        "saturate_hsl",
-        "desaturate",
-        "lighten", 
-        "darken", 
-        "shift_hue",
-    ];
-
-    for &color in colour_spaces.iter() {
-        // Open image path (&str) in photon native engine
-        let mut img = photon::native::open_image(image_path)?;
-        
-        photon::colour_spaces::hsl(&mut img, color, 0.2_f32);
-        
-        photon::native::save_image(img, &format!(
-            "{}/{}_{}.jpg", 
-            image_output_directory,
-            parse_filename, 
-            color
-        )[..]);
-        println!(
-            "Generate {}/{}_{}.jpg image.",
-            image_output_directory,
-            parse_filename,
-            color
-        );
-    }
-    
-    // Apply effect and save image for each following
-    solarize(image_path, image_output_directory, &parse_filename)
-    .expect("Couldn't create solarize image");
-    
-    colorize(image_path, image_output_directory, &parse_filename)
-    .expect("Couldn't create solarize image");
-
-    halftone(image_path, image_output_directory, &parse_filename)
-    .expect("Couldn't create solarize image");
-
-    inc_brightness(image_path, image_output_directory, &parse_filename, 10)
-    .expect("Couldn't create solarize image");
-    
-    vertical_strips(image_path, image_output_directory, &parse_filename, 5)
-    .expect("Couldn't create solarize image");
-
-    horizontal_strips(image_path, image_output_directory, &parse_filename, 7)
-    .expect("Couldn't create solarize image");
-
-    tint(image_path, image_output_directory, &parse_filename, 10, 20, 15)
-    .expect("Couldn't create solarize image");
-
-    offset(image_path, image_output_directory, &parse_filename, 0, 30)
-    .expect("Couldn't create solarize image");
-
-    offset_blue(image_path, image_output_directory, &parse_filename, 30)
-    .expect("Couldn't create solarize image");
-
-    offset_red(image_path, image_output_directory, &parse_filename, 30)    
-    .expect("Couldn't create solarize image");
-
-    offset_green(image_path, image_output_directory, &parse_filename, 30)
-    .expect("Couldn't create solarize image");
-
-    multiple_offsets(image_path, image_output_directory, &parse_filename, 30, 0, 2)
-    .expect("Couldn't create solarize image");
-
-    primary(image_path, image_output_directory, &parse_filename)
-    .expect("Couldn't create solarize image");
-
-    println!("You can compare outputs images with the original in {:?}", entry);
-  }
   Ok(())
 }
